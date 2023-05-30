@@ -57,10 +57,50 @@
           "description": "Location for all resources."
         },
         "defaultValue": "[resourceGroup().location]"
+      },
+      "vnetAddressPrefix":{
+        "type": "string",
+        "metadata": {
+            "description": "Address space for Virtual Netwrok."
+        },
+        "defaultValue": "10.0.0.0/16"
+      },
+      "imageSku": {
+        "type": "string",
+        "allowedValues": [
+          "2022-Datacenter",
+          "2022-Datacenter-Core",
+          "2022-Standard",
+          "2022-Standard-Core",
+          "2019-Datacenter"
+        ],
+        "metadata": {
+          "description": "The SKU of the image reference."
+        }
+      },
+      "imagePublisher": {
+        "type": "string",
+        "defaultValue": "MicrosoftWindowsServer",
+        "metadata": {
+          "description": "The publisher of the image reference."
+        }
+      },
+      "imageOffer": {
+        "type": "string",
+        "defaultValue": "WindowsServer",
+        "metadata": {
+          "description": "The offer of the image reference."
+        }
+      },
+      "imageVersion": {
+        "type": "string",
+        "defaultValue": "latest",
+        "metadata": {
+          "description": "The version of the image reference."
+        }
       }
     },
     "variables": {
-      "vnetAddressPrefix": "10.0.0.0/16",
       "subnetAddressPrefix": "10.0.0.0/24"
     },
     "resources": [
@@ -72,7 +112,7 @@
         "properties": {
           "addressSpace": {
             "addressPrefixes": [
-              "[variables('vnetAddressPrefix')]"
+              "[parameters('vnetAddressPrefix')]"
             ]
           },
           "subnets": [
@@ -184,10 +224,10 @@
           },
           "storageProfile": {
             "imageReference": {
-              "publisher": "MicrosoftWindowsServer",
-              "offer": "WindowsServer",
-              "sku": "2019-Datacenter",
-              "version": "latest"
+              "publisher": "[parameters('imagePublisher')]",
+              "offer": "[parameters('imageOffer')]",
+              "sku": "[parameters('imageSku')]",
+              "version": "[parameters('imageVersion')]"
             },
             "osDisk": {
               "name": "osdisk",

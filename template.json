@@ -2,36 +2,6 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-      "virtualNetworkName": {
-        "type": "string",
-        "metadata": {
-          "description": "Name of the virtual network."
-        }
-      },
-      "subnetName": {
-        "type": "string",
-        "metadata": {
-          "description": "Name of the subnet within the virtual network."
-        }
-      },
-      "loadBalancerName": {
-        "type": "string",
-        "metadata": {
-          "description": "Name of the load balancer."
-        }
-      },
-      "publicIPAddressName": {
-        "type": "string",
-        "metadata": {
-          "description": "Name of the public IP address associated with the load balancer."
-        }
-      },
-      "virtualMachineName": {
-        "type": "string",
-        "metadata": {
-          "description": "Name of the virtual machine."
-        }
-      },
       "adminUsername": {
         "type": "string",
         "metadata": {
@@ -107,7 +77,7 @@
       {
         "type": "Microsoft.Network/virtualNetworks",
         "apiVersion": "2021-02-01",
-        "name": "[parameters('virtualNetworkName')]",
+        "name": "vnet",
         "location": "[parameters('location')]",
         "properties": {
           "addressSpace": {
@@ -117,7 +87,7 @@
           },
           "subnets": [
             {
-              "name": "[parameters('subnetName')]",
+              "name": "subnet1",
               "properties": {
                 "addressPrefix": "[variables('subnetAddressPrefix')]"
               }
@@ -134,8 +104,8 @@
             "name": "Standard"
           },
         "dependsOn": [
-          "[resourceId('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
-          "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddressName'))]"
+          "[resourceId('Microsoft.Network/virtualNetworks/', vnet)]",
+          "[resourceId('Microsoft.Network/publicIPAddresses', pip))]"
         ],
         "properties": {
           "frontendIPConfigurations": [
@@ -143,7 +113,7 @@
               "name": "LoadBalancerFrontEnd",
               "properties": {
                 "publicIPAddress": {
-                  "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddressName'))]"
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses', pip)]"
                 }
               }
             }
@@ -158,10 +128,10 @@
               "name": "HTTPRule",
               "properties": {
                 "frontendIPConfiguration": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', alb), '/frontendIPConfigurations/LoadBalancerFrontEnd')]"
                 },
                 "backendAddressPool": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/backendAddressPools/LoadBalancerBackendPool')]"
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', alb), '/backendAddressPools/LoadBalancerBackendPool')]"
                 },
                 "protocol": "Tcp",
                 "frontendPort": 80,
@@ -169,7 +139,7 @@
                 "enableFloatingIP": false,
                 "idleTimeoutInMinutes": 5,
                 "probe": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/probes/HttpProbe')]"
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', alb), '/probes/HttpProbe')]"
                 }
               }
             }
@@ -191,7 +161,7 @@
       {
         "type": "Microsoft.Network/publicIPAddresses",
         "apiVersion": "2021-02-01",
-        "name": "[parameters('publicIPAddressName')]",
+        "name": "pip",
         "location": "[parameters('location')]",
         "sku": {
           "name": "Standard",
@@ -200,25 +170,25 @@
         "properties": {
           "publicIPAllocationMethod": "Static",
           "dnsSettings": {
-            "domainNameLabel": "[parameters('publicIPAddressName')]"
+            "domainNameLabel": "pip"
           }
         }
       },
       {
         "type": "Microsoft.Compute/virtualMachines",
         "apiVersion": "2021-03-01",
-        "name": "[parameters('virtualMachineName')]",
+        "name": "vm1",
         "location": "[parameters('location')]",
         "dependsOn": [
-          "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName'))]",
-          "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'), '-nic'))]"
+          "[resourceId('Microsoft.Network/loadBalancers', alb)]",
+          "[resourceId('Microsoft.Network/networkInterfaces', concat(vm1, '-nic'))]"
         ],
         "properties": {
           "hardwareProfile": {
             "vmSize": "[parameters('vmSize')]"
           },
           "osProfile": {
-            "computerName": "[parameters('virtualMachineName')]",
+            "computerName": "vm1",
             "adminUsername": "[parameters('adminUsername')]",
             "adminPassword": "[parameters('adminPassword')]"
           },
@@ -237,7 +207,7 @@
           "networkProfile": {
             "networkInterfaces": [
               {
-                "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('virtualMachineName'), '-nic'))]"
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(vm1, '-nic'))]"
               }
             ]
           }
@@ -246,12 +216,12 @@
       {
         "type": "Microsoft.Network/networkInterfaces",
         "apiVersion": "2021-02-01",
-        "name": "[concat(parameters('virtualMachineName'), '-nic')]",
+        "name": "[concat(vm1, '-nic')]",
         "location": "[parameters('location')]",
         "dependsOn": [
-          "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName'))]",
-          "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddressName'))]",
-          "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+          "[resourceId('Microsoft.Network/loadBalancers', alb)]",
+          "[resourceId('Microsoft.Network/publicIPAddresses', pip)]",
+          "[resourceId('Microsoft.Network/virtualNetworks', vnet)]"
         ],
         "properties": {
           "ipConfigurations": [
@@ -259,11 +229,11 @@
               "name": "ipconfig1",
               "properties": {
                 "subnet": {
-                  "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), '/subnets/', parameters('subnetName'))]"
+                  "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', vnet), '/subnets/', subnet1)]"
                 },
                 "loadBalancerBackendAddressPools": [
                   {
-                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName')), '/backendAddressPools/LoadBalancerBackendPool')]"
+                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', alb), '/backendAddressPools/LoadBalancerBackendPool')]"
                   }
                 ]
               }
@@ -275,7 +245,7 @@
     "outputs": {
       "publicIPAddress": {
         "type": "string",
-        "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddressName'))).ipAddress]"
+        "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', pip)).ipAddress]"
       }
     }
   }

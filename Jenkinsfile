@@ -14,7 +14,7 @@ pipeline {
         string(name: 'imageVersion', defaultValue: 'latest', description: 'The version of the image reference.')
     }
     stages {
-        stage('Code Pull') {
+        stage('Checkout') {
             steps {
                 // Get some code from a GitHub repository
                 git branch: 'main', url: 'https://github.com/gautam232019/IR-AzureTask.git'

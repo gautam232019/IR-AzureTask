@@ -17,7 +17,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Get some code from a GitHub repository
-                git branch: 'main', url: 'https://github.com/gautam232019/IR-AzureTask.git'
+                git branch: 'gautam', url: 'https://github.com/gautam232019/IR-AzureTask.git'
             }
         }
         stage('Azure Login') {

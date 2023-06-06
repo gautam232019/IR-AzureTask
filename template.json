@@ -1,252 +1,62 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-      "adminUsername": {
-        "type": "string",
-        "metadata": {
-          "description": "Username for the virtual machine."
-        }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the virtual network."
       },
-      "adminPassword": {
-        "type": "securestring",
-        "metadata": {
-          "description": "Password for the virtual machine."
-        }
+	  "defaultValue": "vnet"
+    },
+    "vnetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Address prefix for the virtual network."
       },
-      "vmSize": {
-        "type": "string",
-        "metadata": {
-          "description": "Size of the virtual machine."
-        },
-        "defaultValue": "Standard_DS1_v2"
+	  "defaultValue": "10.0.0.0/12"
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the subnet."
       },
-      "location": {
-        "type": "string",
-        "metadata": {
-          "description": "Location for all resources."
-        },
-        "defaultValue": "[resourceGroup().location]"
+	  "defaultValue": "clusterSubnet"
+    },
+    "subnetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Address prefix for the subnet."
       },
-      "vnetAddressPrefix":{
-        "type": "string",
-        "metadata": {
-            "description": "Address space for Virtual Netwrok."
-        },
-        "defaultValue": "10.0.0.0/16"
-      },
-      "imageSku": {
-        "type": "string",
-        "allowedValues": [
-          "2022-Datacenter",
-          "2022-Datacenter-Core",
-          "2022-Standard",
-          "2022-Standard-Core",
-          "2019-Datacenter"
-        ],
-        "metadata": {
-          "description": "The SKU of the image reference."
-        }
-      },
-      "imagePublisher": {
-        "type": "string",
-        "defaultValue": "MicrosoftWindowsServer",
-        "metadata": {
-          "description": "The publisher of the image reference."
-        }
-      },
-      "imageOffer": {
-        "type": "string",
-        "defaultValue": "WindowsServer",
-        "metadata": {
-          "description": "The offer of the image reference."
-        }
-      },
-      "imageVersion": {
-        "type": "string",
-        "defaultValue": "latest",
-        "metadata": {
-          "description": "The version of the image reference."
+	  "defaultValue": "10.0.0.0/16"
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('vnetName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetAddressPrefix')]"
+          ]
         }
       }
     },
-    "variables": {
-      "subnetAddressPrefix": "10.0.0.0/24"
-    },
-    "resources": [
-      {
-        "type": "Microsoft.Network/virtualNetworks",
-        "apiVersion": "2021-02-01",
-        "name": "vnet",
-        "location": "[parameters('location')]",
-        "properties": {
-          "addressSpace": {
-            "addressPrefixes": [
-              "[parameters('vnetAddressPrefix')]"
-            ]
-          },
-          "subnets": [
-            {
-              "name": "subnet1",
-              "properties": {
-                "addressPrefix": "[variables('subnetAddressPrefix')]"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "type": "Microsoft.Network/loadBalancers",
-        "apiVersion": "2021-02-01",
-        "name": "alb",
-        "location": "[parameters('location')]",
-        "sku": {
-            "name": "Standard"
-          },
-        "dependsOn": [
-          "[resourceId('Microsoft.Network/virtualNetworks/', 'vnet')]",
-          "[resourceId('Microsoft.Network/publicIPAddresses', 'pip')]"
-        ],
-        "properties": {
-          "frontendIPConfigurations": [
-            {
-              "name": "LoadBalancerFrontEnd",
-              "properties": {
-                "publicIPAddress": {
-                  "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'pip')]"
-                }
-              }
-            }
-          ],
-          "backendAddressPools": [
-            {
-              "name": "LoadBalancerBackendPool"
-            }
-          ],
-          "loadBalancingRules": [
-            {
-              "name": "HTTPRule",
-              "properties": {
-                "frontendIPConfiguration": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'alb'), '/frontendIPConfigurations/LoadBalancerFrontEnd')]"
-                },
-                "backendAddressPool": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'alb'), '/backendAddressPools/LoadBalancerBackendPool')]"
-                },
-                "protocol": "Tcp",
-                "frontendPort": 80,
-                "backendPort": 80,
-                "enableFloatingIP": false,
-                "idleTimeoutInMinutes": 5,
-                "probe": {
-                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'alb'), '/probes/HttpProbe')]"
-                }
-              }
-            }
-          ],
-          "probes": [
-            {
-              "name": "HttpProbe",
-              "properties": {
-                "protocol": "Http",
-                "port": 80,
-                "requestPath": "/",
-                "intervalInSeconds": 15,
-                "numberOfProbes": 2
-              }
-            }
-          ]
-        }
-      },
-      {
-        "type": "Microsoft.Network/publicIPAddresses",
-        "apiVersion": "2021-02-01",
-        "name": "pip",
-        "location": "[parameters('location')]",
-        "sku": {
-          "name": "Standard",
-          "tier": "Regional"
-        },
-        "properties": {
-          "publicIPAllocationMethod": "Static",
-          "dnsSettings": {
-            "domainNameLabel": "pip"
-          }
-        }
-      },
-      {
-        "type": "Microsoft.Compute/virtualMachines",
-        "apiVersion": "2021-03-01",
-        "name": "vm1",
-        "location": "[parameters('location')]",
-        "dependsOn": [
-          "[resourceId('Microsoft.Network/loadBalancers', 'alb')]",
-          "[resourceId('Microsoft.Network/networkInterfaces', concat('vm1', '-nic'))]"
-        ],
-        "properties": {
-          "hardwareProfile": {
-            "vmSize": "[parameters('vmSize')]"
-          },
-          "osProfile": {
-            "computerName": "vm1",
-            "adminUsername": "[parameters('adminUsername')]",
-            "adminPassword": "[parameters('adminPassword')]"
-          },
-          "storageProfile": {
-            "imageReference": {
-              "publisher": "[parameters('imagePublisher')]",
-              "offer": "[parameters('imageOffer')]",
-              "sku": "[parameters('imageSku')]",
-              "version": "[parameters('imageVersion')]"
-            },
-            "osDisk": {
-              "name": "osdisk",
-              "createOption": "FromImage"
-            }
-          },
-          "networkProfile": {
-            "networkInterfaces": [
-              {
-                "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('vm1', '-nic'))]"
-              }
-            ]
-          }
-        }
-      },
-      {
-        "type": "Microsoft.Network/networkInterfaces",
-        "apiVersion": "2021-02-01",
-        "name": "[concat('vm1', '-nic')]",
-        "location": "[parameters('location')]",
-        "dependsOn": [
-          "[resourceId('Microsoft.Network/loadBalancers', 'alb')]",
-          "[resourceId('Microsoft.Network/publicIPAddresses', 'pip')]",
-          "[resourceId('Microsoft.Network/virtualNetworks', 'vnet')]"
-        ],
-        "properties": {
-          "ipConfigurations": [
-            {
-              "name": "ipconfig1",
-              "properties": {
-                "subnet": {
-                  "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', 'vnet'), '/subnets/', 'subnet1')]"
-                },
-                "loadBalancerBackendAddressPools": [
-                  {
-                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'alb'), '/backendAddressPools/LoadBalancerBackendPool')]"
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "outputs": {
-      "publicIPAddress": {
-        "type": "string",
-        "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', 'pip')).ipAddress]"
+    {
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2021-02-01",
+      "name": "[concat(parameters('vnetName'), '/', parameters('subnetName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+      ],
+      "properties": {
+        "addressPrefix": "[parameters('subnetAddressPrefix')]"
       }
     }
-  }
-  
+  ],
+  "outputs": {}
+}

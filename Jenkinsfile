@@ -1,17 +1,13 @@
 pipeline {
     agent any
     parameters {
-        string(name: 'resourceGroup', defaultValue: 'azure-load-balancer-introduction', description: 'The Azure resource group name.')
         string(name: 'templateFileName', defaultValue: 'template.json', description: 'The template file name to deploy.')
-        string(name: 'adminUsername', defaultValue: 'gautam', description: 'Username for the virtual machine.')
-        string(name: 'adminPassword', defaultValue: 'Test123@@@', description: 'Password for the virtual machine.')
-        string(name: 'vmSize', defaultValue: 'Standard_DS1_v2', description: 'Size of the virtual machine.')
-        string(name: 'location', defaultValue: 'northeurope', description: 'Password for the virtual machine.')
-        string(name: 'vnetAddressPrefix', defaultValue: '10.0.0.0/16', description: 'Address space for Virtual Netwrok.')
-        choice(name: 'imageSku', choices: ['2022-Datacenter', '2021-Datacenter', '2020-Datacenter','2019-Datacenter'], description: 'The SKU of the image reference.')
-        string(name: 'imagePublisher', defaultValue: 'MicrosoftWindowsServer', description: 'The publisher of the image reference.')
-        string(name: 'imageOffer', defaultValue: 'WindowsServer', description: 'The offer of the image reference.')
-        string(name: 'imageVersion', defaultValue: 'latest', description: 'The version of the image reference.')
+        string(name: 'vnetName', defaultValue: 'vnet', description: 'The virtual network name to deploy.')
+        string(name: 'resourceGroup', defaultValue: 'azure-load-balancer-introduction', description: 'The name for resource group to deploy template to.')
+        string(name: 'vnetAddressPrefix', defaultValue: '10.0.0.0/12', description: 'Address space for Virtual Netwrok.')
+        // choice(name: 'imageSku', choices: ['2022-Datacenter', '2021-Datacenter', '2020-Datacenter','2019-Datacenter'], description: 'The SKU of the image reference.')
+        string(name: 'subnetName', defaultValue: 'clusterSubnet', description: 'The subnet name to deploy.')
+        string(name: 'subnetAddressPrefix', defaultValue: '10.0.0.0/16', description: 'Address space for Subnet.')
     }
     stages {
         stage('Checkout') {
@@ -32,7 +28,7 @@ pipeline {
         stage('Deploy ARM Template') {
                 steps {
                     script {
-                        sh "az deployment group create --resource-group ${params.resourceGroup} --template-file ${params.templateFileName} --parameters adminUsername=${params.adminUsername} adminPassword=${params.adminPassword} vmSize=${params.vmSize} location=${params.location} vnetAddressPrefix=${params.vnetAddressPrefix} imageSku=${params.imageSku} imagePublisher=${params.imagePublisher} imageOffer=${params.imageOffer} imageVersion=${params.imageVersion}"
+                        sh "az deployment group create --resource-group ${params.resourceGroup} --template-file ${params.templateFileName} --parameters vnetName=${params.vnetName} vnetAddressPrefix=${params.vnetAddressPrefix} subnetName=${params.subnetName} subnetAddressPrefix=${params.subnetAddressPrefix}"
                     }
                 }
             }
